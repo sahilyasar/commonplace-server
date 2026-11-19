@@ -81,7 +81,20 @@ app.post('/join-event', async (req, res) => {
 
 app.delete('/leave-event/:id', async (req, res) => {
     const id = req.params.id;
-    const result = await joinedEventsCollection.deleteOne({ _id: new ObjectId(id) });
+    let joinedId;
+    if (ObjectId.isValid(id)) {
+        joinedId = new ObjectId(id);
+    } else {
+        // Older joined records used an object as their MongoDB primary key.
+        try {
+            const key = JSON.parse(id);
+            if (!ObjectId.isValid(key.eventId) || typeof key.email !== 'string') throw new Error();
+            joinedId = { eventId: key.eventId, email: key.email };
+        } catch {
+            return res.status(400).send({ error: 'Invalid joined record ID' });
+        }
+    }
+    const result = await joinedEventsCollection.deleteOne({ _id: joinedId });
     res.send(result);
 });
 
