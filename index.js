@@ -79,6 +79,12 @@ app.post('/join-event', async (req, res) => {
     res.send(result);
 });
 
+app.delete('/leave-event/:id', async (req, res) => {
+    const id = req.params.id;
+    const result = await joinedEventsCollection.deleteOne({ _id: new ObjectId(id) });
+    res.send(result);
+});
+
 //http://localhost:3001
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
