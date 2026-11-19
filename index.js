@@ -28,6 +28,7 @@ const mongoClient = await connectToMongoDB();
 const db = mongoClient.db('commonplace');
 
 const eventsCollection = db.collection('events');
+const joinedEventsCollection = db.collection('joined_events');
 
 app.get('/', (req, res) => {
     res.send('commonplace-server is running');
@@ -48,7 +49,7 @@ app.get('/events', async (req, res) => {
 })
 
 app.get('/event/:id', async (req, res) => {
-    const id = req.params;
+    const id = req.params.id;
     const result = await eventsCollection.findOne({ _id: new ObjectId(id) });
     res.send(result);
 });
@@ -58,7 +59,25 @@ app.get('/my-events/:email', async (req, res) => {
     const result = await eventsCollection.find({ email: email }).toArray();
     res.send(result);
 });
+app.delete('/delete-event/:id', async (req, res) => {
+    const id = req.params.id;
+    const result = await eventsCollection.deleteOne({ _id: new ObjectId(id) });
+    res.send(result);
+});
 
+app.patch('/update-event/:id', async (req, res) => {
+    const id = req.params.id;
+    const updatedData = req.body;
+    const result = await eventsCollection.updateOne({ _id: new ObjectId(id) }, { $set: updatedData });
+    res.send(result);
+});
+
+app.post('/join-event', async (req, res) => {
+    const data = req.body;
+    const result = await joinedEventsCollection.insertOne(data);
+    console.log(result);
+    res.send(result);
+});
 
 //http://localhost:3001
 app.listen(PORT, () => {
