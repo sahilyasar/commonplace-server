@@ -1,5 +1,6 @@
 import express from 'express';
 import { MongoClient, ObjectId } from 'mongodb';
+import { createRemoteJWKSet, jwtVerify } from 'jose';
 import 'dotenv/config';
 import cors from 'cors';
 const app = express();
@@ -30,6 +31,32 @@ const db = mongoClient.db('commonplace');
 const eventsCollection = db.collection('events');
 const joinedEventsCollection = db.collection('joined_events');
 
+const verifyToken = async (req, res, next) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+        return res.status(401).send({ message: 'unauthorized access' });
+    }
+
+    const token = authHeader.split(' ')[1];
+
+    console.log('Token:', token); // Log the token for debugging
+
+    if (!token) {
+        return res.status(401).send({ message: 'unauthorized access' });
+    }
+
+    const jwks = createRemoteJWKSet(new URL(`${process.env.CLIENT_URL}/api/auth/jwks`));
+    // Verify the token using the JWK set
+    try {
+        await jwtVerify(token, jwks);
+    
+        next();
+    }
+    catch (err) {
+        return res.status(401).send({ message: 'token invalid' });
+    }
+}
+
 app.get('/', (req, res) => {
     res.send('commonplace-server is running');
 });
@@ -37,7 +64,7 @@ app.get('/', (req, res) => {
 app.post('/add-event', async (req, res) => {
     const data = req.body;
     const result = await eventsCollection.insertOne(data);
-    console.log(result);
+    // console.log(result);
     res.send(result);
 
    
@@ -54,7 +81,7 @@ app.get('/event/:id', async (req, res) => {
     res.send(result);
 });
 
-app.get('/my-events/:email', async (req, res) => {
+app.get('/my-events/:email',verifyToken, async (req, res) => {
     const email = req.params.email;
     const result = await eventsCollection.find({ email: email }).toArray();
     res.send(result);
@@ -75,11 +102,11 @@ app.patch('/update-event/:id', async (req, res) => {
 app.post('/join-event', async (req, res) => {
     const data = req.body;
     const result = await joinedEventsCollection.insertOne(data);
-    console.log(result);
+    // console.log(result);
     res.send(result);
 });
 app.get('/featured-events', async (req, res) => {
-    const result = await eventsCollection.find({}).limit(5).toArray();
+    const result = await eventsCollection.find({}).limit(6).toArray();
     res.send(result);
 });
 
