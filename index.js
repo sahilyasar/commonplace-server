@@ -78,6 +78,10 @@ app.post('/join-event', async (req, res) => {
     console.log(result);
     res.send(result);
 });
+app.get('/featured-events', async (req, res) => {
+    const result = await eventsCollection.find({}).limit(5).toArray();
+    res.send(result);
+});
 
 app.delete('/leave-event/:id', async (req, res) => {
     const id = req.params.id;
